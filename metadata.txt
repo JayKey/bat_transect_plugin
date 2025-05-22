@@ -1,0 +1,8 @@
+[general]
+name=Bat Transects
+description=Generowanie transektów do badań nietoperzy
+version=0.1
+qgisMinimumVersion=3.10
+author=Jakub Domański
+email=jakub@codecrunchers.cc
+icon=icon.png

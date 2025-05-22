@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.qrc~
+*.bak
+*.tmp
+.idea/
+*.ui~
+*.log
+resources_rc.py
+resources.pyc

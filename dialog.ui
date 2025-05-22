@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>BatTransectsDialog</class>
+ <widget class="QDialog" name="BatTransectsDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>320</width>
+    <height>160</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Bat Transects</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QLabel" name="labelLayer">
+     <property name="text">
+      <string>Wybierz warstwę punktową:</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="layerComboBox"/>
+   </item>
+   <item>
+    <widget class="QLabel" name="labelBuffer">
+     <property name="text">
+      <string>Promień bufora (m):</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLineEdit" name="bufferLineEdit"/>
+   </item>
+   <item>
+    <widget class="QPushButton" name="generateButton">
+     <property name="text">
+      <string>Generuj transekty</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

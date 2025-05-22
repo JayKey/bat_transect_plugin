@@ -1,3 +1,5 @@
+![WIP](https://img.shields.io/badge/status-WIP-yellow)
+
 # 🦇 Bat Transects QGIS Plugin
 
 A QGIS plugin for generating optimized road transects to assist in field surveys of bat activity — especially in coastal or rural areas.
@@ -33,11 +35,11 @@ python3 -m pip install osmnx networkx shapely
 ---
 
 ## 🚀 How to Use
-- Load a point layer representing bat sampling locations.
-- Click the Bat Transects toolbar button.
-- Set the buffer radius (default: 500 m) and generate buffer zones.
-- Roads within each buffer are downloaded and color-coded by type.
-- Optionally, use the "Find 500 m Route" button to create the shortest valid transect within each road network.
+1. Load a point layer representing bat sampling locations.
+2. Click the Bat Transects toolbar button.
+3. Set the buffer radius (default: 500 m) and generate buffer zones.
+4. Roads within each buffer are downloaded and color-coded by type.
+5. Optionally, use the "Find 500 m Route" button to create the shortest valid transect within each road network.
 
 ---
 

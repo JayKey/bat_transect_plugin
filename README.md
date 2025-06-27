@@ -43,6 +43,47 @@ python3 -m pip install osmnx networkx shapely
 
 ---
 
+## ⚙️ Advanced Settings
+
+Accessible via the **"Advanced"** tab in the plugin dialog:
+
+### 🛣️ Exclude Road Types
+You can choose to exclude selected road types from analysis. These may include:
+- `footway` – pedestrian walkways
+- `cycleway` – bike paths
+- `path` – unclassified rural paths
+- `pedestrian` – pedestrian-only zones (e.g., town centers)
+
+This helps focus on roads that are realistically drivable or relevant for mobile surveys.
+
+---
+
+### 🌿 Environmental Proximity (Planned)
+
+Enable environmental prioritization to prefer roads located close to key environmental features.
+
+You can define a **maximum distance (in meters)** — only roads within this distance from selected features will be considered.
+
+Planned environmental features include:
+
+- **Forests**  
+  Extracted from OpenStreetMap polygons tagged with `landuse=forest` or `natural=wood`.
+
+- **Water bodies**  
+  Includes lakes, rivers, and wetlands tagged with `natural=water`, `water=lake`, or `wetland=*`.
+
+- **Caves**  
+  Points tagged with `natural=cave_entrance`, if available in OSM.
+
+- **Abandoned buildings**  
+  Extracted from OSM features tagged with `building=ruins` or `abandoned=*`.
+
+This allows prioritizing transects located in ecologically interesting or target-rich environments.
+
+You can also set the **maximum distance (in meters)** for a road to be considered "near" such features.
+
+---
+
 ## 🧪 Example Use Cases
 - Designing transects for acoustic bat monitoring (e.g. with detectors on moving vehicles)
 - Mapping field survey routes in coastal and inland habitats

@@ -2,43 +2,136 @@
 <ui version="4.0">
  <class>BatTransectsDialog</class>
  <widget class="QDialog" name="BatTransectsDialog">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>320</width>
-    <height>160</height>
-   </rect>
-  </property>
   <property name="windowTitle">
    <string>Bat Transects</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="mainLayout">
    <item>
-    <widget class="QLabel" name="labelLayer">
-     <property name="text">
-      <string>Wybierz warstwę punktową:</string>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
      </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QComboBox" name="layerComboBox"/>
-   </item>
-   <item>
-    <widget class="QLabel" name="labelBuffer">
-     <property name="text">
-      <string>Promień bufora (m):</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLineEdit" name="bufferLineEdit"/>
-   </item>
-   <item>
-    <widget class="QPushButton" name="generateButton">
-     <property name="text">
-      <string>Generuj transekty</string>
-     </property>
+     <widget class="QWidget" name="basicTab">
+      <attribute name="title">
+       <string>Basic</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="basicLayout">
+       <item>
+        <widget class="QLabel" name="labelLayer">
+         <property name="text">
+          <string>Wybierz warstwę punktową:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="layerComboBox"/>
+       </item>
+       <item>
+        <widget class="QLabel" name="labelBuffer">
+         <property name="text">
+          <string>Promień bufora (m):</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="bufferLineEdit"/>
+       </item>
+       <item>
+        <widget class="QPushButton" name="generateButton">
+         <property name="text">
+          <string>Generuj transekty</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="advancedTab">
+      <attribute name="title">
+       <string>Advanced</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="advancedLayout">
+       <item>
+        <widget class="QLabel" name="labelExclude">
+         <property name="text">
+          <string>Wyklucz typy dróg:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkFootway">
+         <property name="text">
+          <string>footway</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkCycleway">
+         <property name="text">
+          <string>cycleway</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkPath">
+         <property name="text">
+          <string>path</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkPedestrian">
+         <property name="text">
+          <string>pedestrian</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="labelEnv">
+         <property name="text">
+          <string>Uwzględnij środowisko (priorytet):</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkForest">
+         <property name="text">
+          <string>Las</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkWater">
+         <property name="text">
+          <string>Woda</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkCave">
+         <property name="text">
+          <string>Jaskinie</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkAbandoned">
+         <property name="text">
+          <string>Pustostany</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="labelDistance">
+         <property name="text">
+          <string>Maksymalna odległość (m):</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="lineEditMaxDistance"/>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
   </layout>

@@ -8,6 +8,10 @@ from qgis.core import (
 )
 from PyQt5.QtCore import QVariant
 
+from shapely.geometry import shape
+from shapely.ops import transform
+import pyproj
+
 # Typy dróg i kolory
 road_styles = {
     'motorway': '255,0,0',
@@ -22,40 +26,43 @@ road_styles = {
     'footway': '100,100,255'
 }
 
-def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id):
-    # Zamiana QGIS geometry -> Shapely
+
+def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id, buffer_distance):
+    # Konwersja QGIS geometry -> Shapely
     shapely_geom = qgs_geometry.asPolygon()
     if not shapely_geom:
         shapely_geom = qgs_geometry.asMultiPolygon()[0]
     polygon = Polygon(shapely_geom[0])
 
+    # Wyznaczenie centrum bufora
+    centroid = polygon.centroid
+    center_latlon = (polygon.centroid.y, polygon.centroid.x)
+
     try:
-        G = ox.graph_from_polygon(polygon, network_type='all', simplify=True, truncate_by_edge=False)
+        # Pobieramy graf w oparciu o punkt + dystans
+        G = ox.graph_from_point(center_latlon, dist=buffer_distance, network_type='all', simplify=True, truncate_by_edge=False)
         gdf_edges = ox.graph_to_gdfs(G, nodes=False, edges=True)
 
-        # Tworzenie warstwy tymczasowej QGIS
+        # Przycinamy do faktycznego bufora
+        gdf_edges = gdf_edges[gdf_edges.intersects(polygon)]
+
+        # Filtrujemy drogi
+        excluded_highway_types = []
+        gdf_edges = gdf_edges[~gdf_edges['highway'].isin(excluded_highway_types)]
+
+        # Tworzenie tymczasowej warstwy
         temp_layer = QgsVectorLayer("LineString?crs=" + crs.authid(), f"Drogi transektu {buffer_id}", "memory")
         provider = temp_layer.dataProvider()
         provider.addAttributes([QgsField("highway", QVariant.String)])
         temp_layer.updateFields()
 
         features = []
-
-        # Lista typów dróg, które chcemy pominąć
-        excluded_highway_types = []
-        #excluded_highway_types = ['footway', 'cycleway', 'path', 'pedestrian']
-
-        # Filtrowanie niechcianych typów
-        gdf_edges = gdf_edges[~gdf_edges['highway'].isin(excluded_highway_types)]
-
         for _, row in gdf_edges.iterrows():
-            print("DEBUG highway:", row.get("highway"))
             highway = row.get("highway", "")
-            if isinstance(highway, list):  # OSM może mieć listy
+            if isinstance(highway, list):
                 highway = highway[0]
             elif highway is None:
                 highway = ""
-
             geom = QgsGeometry.fromWkt(row["geometry"].wkt)
             feat = QgsFeature()
             feat.setGeometry(geom)
@@ -65,19 +72,17 @@ def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id):
         provider.addFeatures(features)
         temp_layer.updateExtents()
 
-        # Stylizacja według typu drogi
+        # Stylizacja
         categories = []
         for road_type, color in road_styles.items():
             symbol = QgsLineSymbol.createSimple({"color": color, "width": "0.8"})
             category = QgsRendererCategory(road_type, symbol, road_type)
             categories.append(category)
-
         renderer = QgsCategorizedSymbolRenderer("highway", categories)
-        #renderer.updateCategories(temp_layer) # usuwa nieuzywane kategroie
         temp_layer.setRenderer(renderer)
 
         QgsProject.instance().addMapLayer(temp_layer)
-        iface.messageBar().pushMessage("OSM", f"Dodano drogi do bufora {buffer_id}", level=Qgis.Info)
+        iface.messageBar().pushMessage("OSM", f"Added roads for buffer {buffer_id}", level=Qgis.Info)
 
     except Exception as e:
         iface.messageBar().pushMessage("OSM Error", str(e), level=Qgis.Critical)

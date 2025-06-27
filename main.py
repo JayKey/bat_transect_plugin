@@ -113,7 +113,7 @@ class BatTransectsPlugin:
             new_feature.setGeometry(buffer_geom)
             new_feature.setAttributes([i + 1])
             provider.addFeature(new_feature)
-            osm_tools.download_osm_roads_for_buffer(buffer_geom, source_crs, self.iface, i + 1)
+            osm_tools.download_osm_roads_for_buffer(buffer_geom, source_crs, self.iface, i + 1, buffer_distance)
 
         buffer_layer.updateExtents()
 

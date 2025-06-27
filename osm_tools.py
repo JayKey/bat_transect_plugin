@@ -11,6 +11,8 @@ from PyQt5.QtCore import QVariant
 from shapely.geometry import shape
 from shapely.ops import transform
 import pyproj
+from qgis.core import QgsSpatialIndex, QgsFeatureRequest
+
 
 # Typy dróg i kolory
 road_styles = {
@@ -27,9 +29,27 @@ road_styles = {
 }
 
 
-def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id, buffer_distance, excluded_highway_types=None):
+def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id, buffer_distance, excluded_highway_types=None, environment_preferences=None):
+    print("Environment preferences:", environment_preferences)
     if excluded_highway_types is None:
         excluded_highway_types = []
+
+    # Mapowanie typów środowiskowych na fragmenty nazw warstw
+    layer_map = {
+        'forest': 'lasy',
+        'water': 'woda',
+        'cave': 'jaskinie',
+        'abandoned': 'pustostany'
+    }
+
+    env_layers = {}
+    if environment_preferences:
+        for key, name in layer_map.items():
+            if environment_preferences.get(key):
+                for layer in QgsProject.instance().mapLayers().values():
+                    if name.lower() in layer.name().lower():
+                        env_layers[key] = layer
+                        break
 
     # Konwersja QGIS geometry -> Shapely
     shapely_geom = qgs_geometry.asPolygon()
@@ -63,8 +83,16 @@ def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id, buffer_di
         # Tworzenie tymczasowej warstwy
         temp_layer = QgsVectorLayer("LineString?crs=" + crs.authid(), f"Drogi transektu {buffer_id}", "memory")
         provider = temp_layer.dataProvider()
-        provider.addAttributes([QgsField("highway", QVariant.String)])
+        provider.addAttributes([
+            QgsField("highway", QVariant.String),
+            QgsField("score", QVariant.Double)
+        ])
         temp_layer.updateFields()
+
+        # Tworzymy indeksy przestrzenne dla warstw środowiskowych
+        env_indexes = {}
+        for key, layer in env_layers.items():
+            env_indexes[key] = QgsSpatialIndex(layer.getFeatures())
 
         features = []
         for _, row in gdf_edges.iterrows():
@@ -73,10 +101,23 @@ def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id, buffer_di
                 highway = highway[0]
             elif highway is None:
                 highway = ""
+
             geom = QgsGeometry.fromWkt(row["geometry"].wkt)
+            score = 0.0
+
+            # Liczymy score: bliskość do warstw środowiskowych
+            for key, layer in env_layers.items():
+                index = env_indexes[key]
+                nearest_ids = index.nearestNeighbor(geom.boundingBox().center(), 1)
+                if nearest_ids:
+                    nearest_feat = next(layer.getFeatures(QgsFeatureRequest(nearest_ids[0])))
+                    dist = geom.distance(nearest_feat.geometry())
+                    if dist < 100:  # próg 100 m
+                        score += 1 / (dist + 1)  # im bliżej, tym większy score
+
             feat = QgsFeature()
             feat.setGeometry(geom)
-            feat.setAttributes([str(highway)])
+            feat.setAttributes([str(highway), score])
             features.append(feat)
 
         provider.addFeatures(features)

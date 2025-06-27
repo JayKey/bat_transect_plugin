@@ -17,7 +17,7 @@ from PyQt5.QtGui import QColor
 from math import radians, cos, sin, asin, sqrt
 
 
-def find_min_500m_path_in_layer(layer, iface):
+def find_min_500m_path_in_layer(layer, iface, prefer_score=True):
     if layer is None or layer.geometryType() != 1:
         iface.messageBar().pushMessage("Błąd", "Warstwa musi zawierać linie!", level=Qgis.Critical)
         return
@@ -65,18 +65,28 @@ def find_min_500m_path_in_layer(layer, iface):
         end = tuple(line[-1])
         d = QgsDistanceArea()
         d.setEllipsoid('WGS84')
+
+        #-----------------------------------------------------------------------------
+
         length = d.measureLength(QgsGeometry.fromPolylineXY([QgsPointXY(p[0], p[1]) for p in line]))
 
-        print(f"[DEBUG] CRS warstwy: {layer.crs().authid()}")
-        print(f"[DEBUG] Surowa długość (QGIS): {length:.2f}")
+        # Pobierz score z atrybutów feature, domyślnie 0
+        score = feat['score'] if 'score' in feat.fields().names() else 0.0
+        try:
+            score = float(score)
+        except:
+            score = 0.0
 
-        if length > 300:
-            iface.messageBar().pushMessage(
-                "DEBUG", f"Krawędź {start}–{end} ma długość {int(length)} m", level=Qgis.Info
-            )
+        # Jeśli preferujemy score, zmodyfikuj wagę
+        if prefer_score and score > 0:
+            weight = length / (1 + score)  # im wyższy score, tym mniejsza "kosztowa" długość
+        else:
+            weight = length
 
-        print(f"[DEBUG] Krawędź: {start} → {end}, długość: {length:.2f} m")
-        G.add_edge(start, end, weight=length, geometry=LineString(line))
+        G.add_edge(start, end, weight=weight, geometry=LineString(line))
+
+        #-------------------------------------------------------------------------------
+
         edge_geoms[(start, end)] = LineString(line)
         edge_geoms[(end, start)] = LineString(list(reversed(line)))
 

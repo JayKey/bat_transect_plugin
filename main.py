@@ -157,13 +157,22 @@ class BatTransectsPlugin:
             if self.dialog.checkFootway.isChecked():
                 excluded_types.append("footway")
 
+            # Odczytujemy preferencje środowiskowe z UI
+            environment_preferences = {
+                'forest': self.dialog.checkForest.isChecked(),
+                'water': self.dialog.checkWater.isChecked(),
+                'cave': self.dialog.checkCave.isChecked(),
+                'abandoned': self.dialog.checkAbandoned.isChecked()
+            }
+
             osm_tools.download_osm_roads_for_buffer(
                 buffer_geom,
                 source_crs,
                 self.iface,
                 i + 1,
                 buffer_distance,
-                excluded_types
+                excluded_types,
+                environment_preferences
             )
 
         buffer_layer.updateExtents()

@@ -1,3 +1,4 @@
+# osm_tools.py
 import osmnx as ox
 import networkx as nx
 from shapely.geometry import Polygon
@@ -12,6 +13,7 @@ from shapely.geometry import shape
 from shapely.ops import transform
 import pyproj
 from qgis.core import QgsSpatialIndex, QgsFeatureRequest
+from collections.abc import Iterable
 
 
 # Typy dróg i kolory
@@ -28,11 +30,25 @@ road_styles = {
     'footway': '100,100,255'
 }
 
+def flatten(value):
+    """
+    Rekurencyjnie spłaszcza dowolnie zagnieżdżoną strukturę listową,
+    ignorując stringi i bajty jako iterowalne.
+    """
+    if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+        result = []
+        for item in value:
+            result.extend(flatten(item))
+        return result
+    else:
+        return [value]
+
 
 def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id, buffer_distance, excluded_highway_types=None, environment_preferences=None):
     print("Environment preferences:", environment_preferences)
     if excluded_highway_types is None:
         excluded_highway_types = []
+    excluded_highway_types = [str(v) for v in excluded_highway_types]
 
     # Mapowanie typów środowiskowych na fragmenty nazw warstw
     layer_map = {
@@ -66,41 +82,28 @@ def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id, buffer_di
         G = ox.graph_from_point(center_latlon, dist=buffer_distance, network_type='all', simplify=True, truncate_by_edge=False)
         gdf_edges = ox.graph_to_gdfs(G, nodes=False, edges=True)
 
-        def flatten_highway_column(hw):
-            if isinstance(hw, list):
-                return hw[0] if hw else None
-            return hw
-
-        gdf_edges["highway"] = gdf_edges["highway"].apply(flatten_highway_column)
-
         # Przycinamy do faktycznego bufora
         gdf_edges = gdf_edges[gdf_edges.intersects(polygon)]
 
         # Filtrujemy drogi
         def should_exclude(highway_value):
-            # Spłaszczanie wszystkich zagnieżdżonych list
-            def flatten(value):
-                if isinstance(value, list):
-                    result = []
-                    for v in value:
-                        result.extend(flatten(v))
-                    return result
-                return [value]
+            try:
+                flat_values = flatten(highway_value)  # używa globalnej wersji
+            except Exception as e:
+                print(f"[ERROR flattening] value={highway_value} → {e}")
+                return False
+            print(f"flat_values={flat_values}")
 
-            flat_values = flatten(highway_value)
-
-            # Filtracja – tylko hashable stringi
             for val in flat_values:
-                try:
-                    if val in excluded_highway_types:
-                        return True
-                except TypeError as e:
-                    print(f"[BŁĄD HASH] val={val} (typ: {type(val)}): {e}")
+                if val in excluded_highway_types:
+                    return True
+
             return False
 
         print("Excluded highway types:", excluded_highway_types)
         print("Sample highway values:", gdf_edges['highway'].unique())
 
+        iface.messageBar().pushMessage("OSM", f"Petla na drogi", level=Qgis.Info)
         print("excluded_highway_types (final):", excluded_highway_types)
         for i, val in enumerate(gdf_edges['highway']):
             try:
@@ -130,17 +133,17 @@ def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id, buffer_di
         for _, row in gdf_edges.iterrows():
             highway_raw = row.get("highway", "")
 
-            # Defensywne przypisanie
-            if isinstance(highway_raw, (list, tuple)) and len(highway_raw) > 0:
-                highway = str(highway_raw[0])
-            elif isinstance(highway_raw, str):
-                highway = highway_raw
-            elif highway_raw is None:
-                highway = ""
-            else:
-                highway = str(highway_raw)
+            try:
+                flat_values = flatten(highway_raw)
+                if not flat_values:
+                    highway = ""
+                else:
+                    highway = str(flat_values[0])
+            except Exception as e:
+                print(f"[ERROR] Failed to flatten highway value: {highway_raw} → {e}")
+                highway = "unknown"
 
-            print(f"[DEBUG] highway_raw={highway_raw} → parsed highway={highway}")
+            print(f"[DEBUG] highway_raw={highway_raw} → flattened={flat_values} → used highway={highway}")
 
             geom = QgsGeometry.fromWkt(row["geometry"].wkt)
             score = 0.0
@@ -163,6 +166,7 @@ def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id, buffer_di
         provider.addFeatures(features)
         temp_layer.updateExtents()
 
+        iface.messageBar().pushMessage("OSM", f"Stylizacja", level=Qgis.Info)
         # Stylizacja
         categories = []
         for road_type, color in road_styles.items():

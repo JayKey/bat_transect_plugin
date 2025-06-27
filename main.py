@@ -1,3 +1,4 @@
+# main.py
 from qgis.PyQt.QtWidgets import QAction
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import Qgis

@@ -3,6 +3,9 @@ from qgis.PyQt.QtWidgets import QAction
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import Qgis
 
+from .osm_tools import download_osm_environment_layers
+from PyQt5.QtGui import QColor
+
 from . import resources
 from . import osm_tools
 from . import routing_tools
@@ -28,7 +31,6 @@ from PyQt5.QtCore import QVariant
 from qgis.core import QgsFillSymbol, QgsSimpleFillSymbolLayer
 
 from PyQt5.QtWidgets import QToolButton, QMenu
-
 
 class BatTransectsPlugin:
     def __init__(self, iface):
@@ -166,7 +168,8 @@ class BatTransectsPlugin:
                 'forest': self.dialog.checkForest.isChecked(),
                 'water': self.dialog.checkWater.isChecked(),
                 'cave': self.dialog.checkCave.isChecked(),
-                'abandoned': self.dialog.checkAbandoned.isChecked()
+                'abandoned': self.dialog.checkAbandoned.isChecked(),
+                'max_distance': self.dialog.lineEditMaxDistance.text()
             }
 
             osm_tools.download_osm_roads_for_buffer(
@@ -298,3 +301,4 @@ class BatTransectsPlugin:
             if "drogi" in lyr.name().lower() or "roads" in lyr.name().lower():
                 road_layer = lyr
                 break
+

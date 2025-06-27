@@ -126,6 +126,9 @@ class BatTransectsPlugin:
                 geom.transform(transform_to_buffer)
 
             buffer_geom = geom.buffer(buffer_distance, 16)
+            if buffer_geom is None or buffer_geom.isEmpty():
+                print(f"[DEBUG] Punkt {i + 1} → bufor pusty lub None!")
+                continue
 
             if not crs_is_metric:
                 buffer_geom.transform(transform_back)
@@ -174,6 +177,7 @@ class BatTransectsPlugin:
                 excluded_types,
                 environment_preferences
             )
+            print(f"[DEBUG] Wywołuję OSM download dla punktu {i + 1}, bufor: {buffer_geom.asWkt()[:100]}...")
 
         buffer_layer.updateExtents()
 
@@ -249,6 +253,7 @@ class BatTransectsPlugin:
         transform_to_buffer = QgsCoordinateTransform(source_crs, map_crs, QgsProject.instance())
         transform_back = QgsCoordinateTransform(map_crs, source_crs, QgsProject.instance())
         crs_is_metric = source_crs.mapUnits() == QgsUnitTypes.DistanceMeters
+        print(f"[DEBUG] CRS warstwy: {source_crs.authid()}, metryczne: {crs_is_metric}")
 
         buffer_layer = QgsVectorLayer("Polygon?crs=" + source_crs.authid(), "Bufory transektów", "memory")
         provider = buffer_layer.dataProvider()

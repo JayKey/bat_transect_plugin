@@ -66,17 +66,49 @@ def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id, buffer_di
         G = ox.graph_from_point(center_latlon, dist=buffer_distance, network_type='all', simplify=True, truncate_by_edge=False)
         gdf_edges = ox.graph_to_gdfs(G, nodes=False, edges=True)
 
+        def flatten_highway_column(hw):
+            if isinstance(hw, list):
+                return hw[0] if hw else None
+            return hw
+
+        gdf_edges["highway"] = gdf_edges["highway"].apply(flatten_highway_column)
+
         # Przycinamy do faktycznego bufora
         gdf_edges = gdf_edges[gdf_edges.intersects(polygon)]
 
         # Filtrujemy drogi
         def should_exclude(highway_value):
-            if isinstance(highway_value, list):
-                return any(htype in excluded_highway_types for htype in highway_value)
-            return highway_value in excluded_highway_types
+            # Spłaszczanie wszystkich zagnieżdżonych list
+            def flatten(value):
+                if isinstance(value, list):
+                    result = []
+                    for v in value:
+                        result.extend(flatten(v))
+                    return result
+                return [value]
+
+            flat_values = flatten(highway_value)
+
+            # Filtracja – tylko hashable stringi
+            for val in flat_values:
+                try:
+                    if val in excluded_highway_types:
+                        return True
+                except TypeError as e:
+                    print(f"[BŁĄD HASH] val={val} (typ: {type(val)}): {e}")
+            return False
 
         print("Excluded highway types:", excluded_highway_types)
         print("Sample highway values:", gdf_edges['highway'].unique())
+
+        print("excluded_highway_types (final):", excluded_highway_types)
+        for i, val in enumerate(gdf_edges['highway']):
+            try:
+                _ = should_exclude(val)
+            except Exception as e:
+                print(f"[ERROR] row {i} → highway={val} (type={type(val)}) → {e}")
+            else:
+                print(f"[OK] row {i} → highway={val} (type={type(val)})")
 
         gdf_edges = gdf_edges[~gdf_edges['highway'].apply(should_exclude)]
 
@@ -96,11 +128,19 @@ def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id, buffer_di
 
         features = []
         for _, row in gdf_edges.iterrows():
-            highway = row.get("highway", "")
-            if isinstance(highway, list):
-                highway = highway[0]
-            elif highway is None:
+            highway_raw = row.get("highway", "")
+
+            # Defensywne przypisanie
+            if isinstance(highway_raw, (list, tuple)) and len(highway_raw) > 0:
+                highway = str(highway_raw[0])
+            elif isinstance(highway_raw, str):
+                highway = highway_raw
+            elif highway_raw is None:
                 highway = ""
+            else:
+                highway = str(highway_raw)
+
+            print(f"[DEBUG] highway_raw={highway_raw} → parsed highway={highway}")
 
             geom = QgsGeometry.fromWkt(row["geometry"].wkt)
             score = 0.0

@@ -26,6 +26,9 @@ from qgis.core import (
 from PyQt5.QtCore import QVariant
 from qgis.core import QgsFillSymbol, QgsSimpleFillSymbolLayer
 
+from PyQt5.QtWidgets import QToolButton, QMenu
+
+
 class BatTransectsPlugin:
     def __init__(self, iface):
         self.iface = iface
@@ -33,25 +36,41 @@ class BatTransectsPlugin:
         self.route_action = None
 
     def initGui(self):
-        # Ładujemy ikonę z resources.qrc (np. ":/icon.png")
+        # Ikona przycisku
         icon = QIcon(":/icon.png")
 
-        # Tworzymy akcję z ikoną i nazwą
-        self.action = QAction(icon, "Bat Transects", self.iface.mainWindow())
-        self.action.triggered.connect(self.run)
+        # 🔹 Akcja główna – wykonuje wszystkie kroki
+        self.action_run_all = QAction(QIcon(":/icon.png"), "Wyznacz trasę", self.iface.mainWindow())
+        self.action_run_all.triggered.connect(self.run_all_steps)
 
-        # Dodajemy ikonę do paska narzędzi QGIS
-        self.iface.addToolBarIcon(self.action)
+        # 🔹 Akcja: Wyznacz transekty
+        self.action_run_transect = QAction("Wyznacz bufory i znajdź drogi", self.iface.mainWindow())
+        self.action_run_transect.triggered.connect(self.run)
 
-        # Dodajemy ikonę + nazwę do menu „Wtyczki”
-        self.iface.addPluginToMenu("&Bat Transects", self.action)
+        # 🔹 Akcja: Wyznacz ścieżkę 500 m
+        self.action_find_500m = QAction("Wyznacz ścieżkę 500 m", self.iface.mainWindow())
+        self.action_find_500m.triggered.connect(self.run_route_search)
 
-        # Przycisk: wyznacz trasę 500 m
-        route_icon = QIcon(":/icon.png")  # albo inna ikona
-        self.route_action = QAction(route_icon, "Wyznacz trasę 500 m", self.iface.mainWindow())
-        self.route_action.triggered.connect(self.run_route_search)
-        self.iface.addToolBarIcon(self.route_action)
-        self.iface.addPluginToMenu("&Bat Transects", self.route_action)
+        # 🔹 Akcja: Połącz po drogach OSM
+        self.action_connect_osm = QAction("Połącz transekty", self.iface.mainWindow())
+        self.action_connect_osm.triggered.connect(self.run_connect_transects)
+
+        # 🔹 Menu rozwijane
+        menu = QMenu()
+        menu.addAction(self.action_run_transect)
+        menu.addAction(self.action_find_500m)
+        menu.addAction(self.action_connect_osm)
+
+        # 🔹 Przyciski z menu i akcją główną
+        self.button_main = QToolButton()
+        self.button_main.setIcon(icon)
+        self.button_main.setToolTip("Wyznacz trasę")
+        self.button_main.setPopupMode(QToolButton.MenuButtonPopup)
+        self.button_main.setDefaultAction(self.action_run_all)
+        self.button_main.setMenu(menu)
+
+        # 🔹 Dodanie przycisku do paska narzędzi QGIS
+        self.iface.addToolBarWidget(self.button_main)
 
     def unload(self):
         # Usuwanie przy wyłączaniu wtyczki
@@ -59,6 +78,8 @@ class BatTransectsPlugin:
         self.iface.removeToolBarIcon(self.action)
         self.iface.removePluginMenu("&Bat Transects", self.route_action)
         self.iface.removeToolBarIcon(self.route_action)
+        self.iface.removeToolBarIcon(self.connect_transects_action)
+        self.iface.removePluginMenu("Bat Transect Plugin", self.connect_transects_action)
 
     def run(self):
         self.dialog = BatTransectsDialog()
@@ -133,3 +154,102 @@ class BatTransectsPlugin:
     def run_route_search(self):
         layer = self.iface.activeLayer()
         routing_tools.find_min_500m_path_in_layer(layer, self.iface)
+
+    def run_connect_transects(self):
+        transect_layer = self.iface.activeLayer()
+        if not transect_layer:
+            self.iface.messageBar().pushMessage("Błąd", "Nie wybrano warstwy transektów!", level=Qgis.Critical)
+            return
+
+        # Szukamy warstwy z drogami – po nazwie zawierającej "drogi" lub "roads"
+        road_layer = None
+        for layer in QgsProject.instance().mapLayers().values():
+            if layer.name().lower().startswith("drogi") or "roads" in layer.name().lower():
+                road_layer = layer
+                break
+
+        if not road_layer:
+            self.iface.messageBar().pushMessage("Błąd", "Nie znaleziono warstwy dróg (nazwa zaczynająca się od 'drogi').", level=Qgis.Critical)
+            return
+
+        routing_tools.connect_transects_via_osm(transect_layer, road_layer, self.iface)
+
+    def run_all_steps(self):
+        self.dialog = BatTransectsDialog()
+
+        layers = [layer for layer in QgsProject.instance().mapLayers().values()
+                  if layer.type() == QgsMapLayer.VectorLayer and layer.geometryType() == QgsWkbTypes.PointGeometry]
+
+        self.dialog.layerComboBox.clear()
+        for layer in layers:
+            self.dialog.layerComboBox.addItem(layer.name(), layer)
+
+        self.dialog.bufferLineEdit.setText("500")
+        self.dialog.generateButton.clicked.connect(self.run_all_steps_generate)
+
+        self.dialog.show()
+
+    def run_all_steps_generate(self):
+        layer = self.dialog.layerComboBox.currentData()
+        try:
+            buffer_distance = float(self.dialog.bufferLineEdit.text())
+        except ValueError:
+            self.iface.messageBar().pushMessage("Błąd", "Nieprawidłowa wartość bufora.", level=Qgis.Critical)
+            return
+
+        if layer is None or buffer_distance <= 0:
+            self.iface.messageBar().pushMessage("Błąd", "Brak warstwy lub nieprawidłowy bufor.", level=Qgis.Critical)
+            return
+
+        self.generate_and_process(layer, buffer_distance)
+        self.dialog.close()
+
+    def generate_and_process(self, selected_layer, buffer_distance):
+        source_crs = selected_layer.crs()
+        map_crs = QgsCoordinateReferenceSystem("EPSG:3857")
+        transform_to_buffer = QgsCoordinateTransform(source_crs, map_crs, QgsProject.instance())
+        transform_back = QgsCoordinateTransform(map_crs, source_crs, QgsProject.instance())
+        crs_is_metric = source_crs.mapUnits() == QgsUnitTypes.DistanceMeters
+
+        buffer_layer = QgsVectorLayer("Polygon?crs=" + source_crs.authid(), "Bufory transektów", "memory")
+        provider = buffer_layer.dataProvider()
+        provider.addAttributes([QgsField("id", QVariant.Int)])
+        buffer_layer.updateFields()
+
+        for i, feature in enumerate(selected_layer.getFeatures()):
+            geom = feature.geometry()
+            if geom.isEmpty():
+                continue
+
+            if not crs_is_metric:
+                geom.transform(transform_to_buffer)
+
+            buffer_geom = geom.buffer(buffer_distance, 16)
+
+            if not crs_is_metric:
+                buffer_geom.transform(transform_back)
+
+            new_feature = QgsFeature()
+            new_feature.setGeometry(buffer_geom)
+            new_feature.setAttributes([i + 1])
+            provider.addFeature(new_feature)
+
+            osm_tools.download_osm_roads_for_buffer(buffer_geom, source_crs, self.iface, i + 1, buffer_distance)
+
+        buffer_layer.updateExtents()
+        symbol = QgsFillSymbol.createSimple(
+            {'color': '255,0,0,100', 'outline_color': '255,0,0', 'outline_width': '0.5'})
+        buffer_layer.renderer().setSymbol(symbol)
+        QgsProject.instance().addMapLayer(buffer_layer)
+
+        self.iface.messageBar().pushMessage("Sukces", "Dodano warstwę buforów.", level=Qgis.Success)
+
+        for lyr in QgsProject.instance().mapLayers().values():
+            if lyr.name().lower().startswith("trasa") or "transekt" in lyr.name().lower():
+                routing_tools.find_min_500m_path_in_layer(lyr, self.iface)
+
+        road_layer = None
+        for lyr in QgsProject.instance().mapLayers().values():
+            if "drogi" in lyr.name().lower() or "roads" in lyr.name().lower():
+                road_layer = lyr
+                break

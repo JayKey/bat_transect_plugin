@@ -97,12 +97,18 @@
          <property name="text">
           <string>Las</string>
          </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
        <item>
         <widget class="QCheckBox" name="checkWater">
          <property name="text">
           <string>Woda</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -111,12 +117,18 @@
          <property name="text">
           <string>Jaskinie</string>
          </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
        <item>
         <widget class="QCheckBox" name="checkAbandoned">
          <property name="text">
           <string>Pustostany</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -128,7 +140,11 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="lineEditMaxDistance"/>
+        <widget class="QLineEdit" name="lineEditMaxDistance">
+         <property name="text">
+          <string>100</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>

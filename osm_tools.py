@@ -27,7 +27,10 @@ road_styles = {
 }
 
 
-def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id, buffer_distance):
+def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id, buffer_distance, excluded_highway_types=None):
+    if excluded_highway_types is None:
+        excluded_highway_types = []
+
     # Konwersja QGIS geometry -> Shapely
     shapely_geom = qgs_geometry.asPolygon()
     if not shapely_geom:
@@ -47,8 +50,15 @@ def download_osm_roads_for_buffer(qgs_geometry, crs, iface, buffer_id, buffer_di
         gdf_edges = gdf_edges[gdf_edges.intersects(polygon)]
 
         # Filtrujemy drogi
-        excluded_highway_types = []
-        gdf_edges = gdf_edges[~gdf_edges['highway'].isin(excluded_highway_types)]
+        def should_exclude(highway_value):
+            if isinstance(highway_value, list):
+                return any(htype in excluded_highway_types for htype in highway_value)
+            return highway_value in excluded_highway_types
+
+        print("Excluded highway types:", excluded_highway_types)
+        print("Sample highway values:", gdf_edges['highway'].unique())
+
+        gdf_edges = gdf_edges[~gdf_edges['highway'].apply(should_exclude)]
 
         # Tworzenie tymczasowej warstwy
         temp_layer = QgsVectorLayer("LineString?crs=" + crs.authid(), f"Drogi transektu {buffer_id}", "memory")

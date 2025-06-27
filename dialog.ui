@@ -51,38 +51,97 @@
       </attribute>
       <layout class="QVBoxLayout" name="advancedLayout">
        <item>
-        <widget class="QLabel" name="labelExclude">
-         <property name="text">
-          <string>Wyklucz typy dróg:</string>
+        <widget class="QGroupBox" name="groupExcludeRoads">
+         <property name="title">
+          <string>Wyklucz typy dróg</string>
          </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="checkFootway">
-         <property name="text">
-          <string>footway</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="checkCycleway">
-         <property name="text">
-          <string>cycleway</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="checkPath">
-         <property name="text">
-          <string>path</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="checkPedestrian">
-         <property name="text">
-          <string>pedestrian</string>
-         </property>
+         <layout class="QVBoxLayout" name="groupBoxLayout">
+          <item>
+           <widget class="QCheckBox" name="checkMotorway">
+            <property name="text">
+             <string>motorway</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkPrimary">
+            <property name="text">
+             <string>primary</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkSecondary">
+            <property name="text">
+             <string>secondary</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkTertiary">
+            <property name="text">
+             <string>tertiary</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkResidential">
+            <property name="text">
+             <string>residential</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkTrack">
+            <property name="text">
+             <string>track</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkPath">
+            <property name="text">
+             <string>path</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkService">
+            <property name="text">
+             <string>service</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkUnclassified">
+            <property name="text">
+             <string>unclassified</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkFootway">
+            <property name="text">
+             <string>footway</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
        <item>
@@ -140,6 +199,7 @@
         </widget>
        </item>
        <item>
+
         <widget class="QLineEdit" name="lineEditMaxDistance">
          <property name="text">
           <string>100</string>

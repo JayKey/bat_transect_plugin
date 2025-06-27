@@ -134,7 +134,37 @@ class BatTransectsPlugin:
             new_feature.setGeometry(buffer_geom)
             new_feature.setAttributes([i + 1])
             provider.addFeature(new_feature)
-            osm_tools.download_osm_roads_for_buffer(buffer_geom, source_crs, self.iface, i + 1, buffer_distance)
+
+            excluded_types = []
+            if self.dialog.checkMotorway.isChecked():
+                excluded_types.append("motorway")
+            if self.dialog.checkPrimary.isChecked():
+                excluded_types.append("primary")
+            if self.dialog.checkSecondary.isChecked():
+                excluded_types.append("secondary")
+            if self.dialog.checkTertiary.isChecked():
+                excluded_types.append("tertiary")
+            if self.dialog.checkResidential.isChecked():
+                excluded_types.append("residential")
+            if self.dialog.checkTrack.isChecked():
+                excluded_types.append("track")
+            if self.dialog.checkPath.isChecked():
+                excluded_types.append("path")
+            if self.dialog.checkService.isChecked():
+                excluded_types.append("service")
+            if self.dialog.checkUnclassified.isChecked():
+                excluded_types.append("unclassified")
+            if self.dialog.checkFootway.isChecked():
+                excluded_types.append("footway")
+
+            osm_tools.download_osm_roads_for_buffer(
+                buffer_geom,
+                source_crs,
+                self.iface,
+                i + 1,
+                buffer_distance,
+                excluded_types
+            )
 
         buffer_layer.updateExtents()
 
